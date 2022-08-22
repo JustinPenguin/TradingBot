@@ -14,6 +14,7 @@ import backtrader.strategies as btstrats
 import yfinance as yf
 import pandas as pd
 
+import numpy as np
 
 import sys
 import errno
@@ -26,14 +27,13 @@ signal(SIGPIPE,SIG_DFL)
 # Create a Stratey
 class TestStrategy(bt.Strategy):
     params = (
-        ('periods', ()),
+        ('parameters', [1.5,10,2,30]),
         ('printlog', False),
         ('progress', False),
         ('starting_price', 0),
         ('ending_price', 0),
         ('sizer_percent',99),
         ('portfolio_value', 0),
-        ('percent', 1)
     )
 
     def log(self, txt, dt=None, doprint=False):
@@ -53,12 +53,12 @@ class TestStrategy(bt.Strategy):
         self.buycomm = None
         self.first_price = True
         # Add a MovingAverageSimple indicator
+        self.kama = bt.indicators.KAMAEnvelope(period=self.params.parameters[1], fast=self.params.parameters[2], slow=self.params.parameters[3], perc=self.params.parameters[0])
 
-
-        self.sma1 = bt.indicators.SMA(
-            self.datas[0], period=self.params.periods[0])
-        self.sma2 = bt.indicators.SMA(
-            self.datas[0], period=self.params.periods[1])
+        # self.sma1 = bt.indicators.MovingAverageAdaptive(
+        #     self.datas[0], period=self.params.periods[0])
+        # self.sma2 = bt.indicators.MovingAverageAdaptive(
+        #     self.datas[0], period=self.params.periods[1])
 
 
     def notify_order(self, order):
@@ -124,7 +124,7 @@ class TestStrategy(bt.Strategy):
         if not self.position:
 
             # Not yet ... we MIGHT BUY if ...
-            if self.sma2[0] > self.sma1[0]:
+            if self.dataclose[0] > self.kama.top[0]:
 
                 # BUY, BUY, BUY!!! (with all possible default parameters)
                 self.log('BUY CREATE, %.2f' % self.dataclose[0])
@@ -135,7 +135,7 @@ class TestStrategy(bt.Strategy):
 
         else:
 
-            if self.sma2[0] < self.sma1[0]:
+            if self.dataclose[0] < self.kama.bot[0]:
                 # SELL, SELL, SELL!!! (with all possible default parameters)
                 self.log('SELL CREATE, %.2f' % self.dataclose[0])
 
@@ -144,8 +144,8 @@ class TestStrategy(bt.Strategy):
                 self.order = self.sell(size=self.buysize)
 
     def stop(self):
-        self.log('(MA Period1 %2d) (MA Period2 %2d) Ending Value %.2f' %
-                 (self.params.periods[0], self.params.periods[1], self.broker.getvalue()), doprint=self.params.progress)
+        # self.log('(Percent %.2f) (Period %.2f) (Fast %.2f) (Slow %.2f) Ending Value %.2f' %
+        #          (self.params.parameters[0], self.params.parameters[1], self.params.parameters[2], self.params.parameters[3], self.broker.getvalue()), doprint=self.params.progress)
 
         self.params.ending_price = self.dataclose[0]
         self.params.portfolio_value = self.broker.getvalue()
@@ -154,12 +154,48 @@ class TestStrategy(bt.Strategy):
 
 if __name__ == '__main__':
     # Create a cerebro entity
-    cerebro = bt.Cerebro(optreturn=True, stdstats=False, exactbars = True)
+    cerebro = bt.Cerebro(stdstats = False, exactbars=False)
 
     # Add a strategy
-    period1 = range(1,40)
-    period2 = range(1,40)
+    period1 = range(8,20)
+    period2 = range(1,20)
+    period3 = range(1,40)
+    percents = np.linspace(1,8,90)
+    parameters = []
+    for p in percents:
+        if random.randint(1,4) % 4 == 0:
+            
+            for i in period1:
+                if random.randint(1,3) % 3 == 0:
+                    for j in period2:
+                        if random.randint(1,3) % 3 == 0:
+                                for k in period3:
+                                    if k > j:
+                                        if random.randint(1,4) % 4 == 0:
+                                            parameters.append([p, i, j, k])
 
+            
+    log = sys.argv[1]
+    progress = sys.argv[2]
+    if log == "True":
+        log = True
+    else:
+        log = False
+
+    if progress == "True":
+        progress == True
+    else:
+        progress == False
+
+    print(log, progress)
+
+    strats = cerebro.optstrategy(
+    TestStrategy,
+    parameters=parameters,
+    printlog = log,
+    progress = progress
+    )
+    cerebro.addsizer(bt.sizers.PercentSizerInt)
     # cerebro.addstrategy(TestStrategy)
 
 
@@ -215,74 +251,48 @@ if __name__ == '__main__':
     # Run over everything
 
     # for i in range(1,100):
-    period_parameters = []
-    for i in period1:
-        # if random.randint(1,4) % 4 == 0:
-            for j in period2:
-                if j < i:
-                    # if random.randint(1,4) % 4 == 0:
-                            period_parameters.append((i,j)) 
-
-            
-
-    log = sys.argv[1]
-    progress = sys.argv[2]
-    if log == "True":
-        log = True
-    else:
-        log = False
-
-    if progress == "True":
-        progress == True
-    else:
-        progress == False
+    
 
 
-    strats = cerebro.optstrategy(
-    TestStrategy,
-    printlog=log,
-    progress=progress,
-    periods=period_parameters)
-    cerebro.addsizer(bt.sizers.PercentSizerInt)
-
-
-    results = cerebro.run(maxcpus=10)
+    results = cerebro.run(maxcpus=20)
+    # cerebro.plot()
 
     strats = [x[0] for x in results]
     def sharperatio(num):
-        if num.analyzers.mysharpe.get_analysis()['sharperatio'] == None:
+        if num.analyzers.mysharpe.get_analysis()['sharperatio'] == None or num.params.portfolio_value < cash:
             num.analyzers.mysharpe.get_analysis()['sharperatio'] = 0
         return num.analyzers.mysharpe.get_analysis()['sharperatio']
-    strats.sort(key = sharperatio)
+
     def VWR(num):
-        if num.analyzers.myVWR.get_analysis()['vwr'] == None:
+        if num.analyzers.myVWR.get_analysis()['vwr'] == None or num.params.portfolio_value < cash:
             num.analyzers.myVWR.get_analysis()['vwr'] = 0
         return num.analyzers.myVWR.get_analysis()['vwr']
-    strats.sort(key = sharperatio)
-
     
-
     for i in reversed(range(-9,1)):
-        print(strats[-1].params.portfolio_value)
-        print("Sizer percent: {}".format(strats[-1].params.sizer_percent))
-        print("Highest sharpe Ratio: {} Strategy: {},{}".format(strats[-1].analyzers.mysharpe.get_analysis()['sharperatio'], strats[-1].params.periods[0], strats[-1].params.periods[1]))
-    
-        starting_price = strats[-1].params.starting_price
-        ending_price = strats[-1].params.ending_price
+       
+        strats.sort(key = sharperatio)
+        print(strats[i].params.portfolio_value)
+        print("Sizer percent: {}".format(strats[i].params.sizer_percent))
+        print("Highest sharpe Ratio: {} Strategy: {} {} {} {}".format(strats[i].analyzers.mysharpe.get_analysis()['sharperatio'], strats[i].params.parameters[0], strats[i].params.parameters[1], strats[i].params.parameters[2], strats[i].params.parameters[3]))
+        print("Its VWR: {}".format(strats[i].analyzers.myVWR.get_analysis()['vwr']))
+
+        starting_price = strats[i].params.starting_price
+        ending_price = strats[i].params.ending_price
         print(starting_price, " ", ending_price)
     
         buying_and_holding = (1 + ((ending_price - starting_price)/starting_price)) * cash
         print("Portoflio value from buying and holding: {}".format(buying_and_holding))
 
-    
-    strats.sort(key = VWR)
     for i in reversed(range(-9,1)):
-        print(strats[-1].params.portfolio_value)
-        print("Sizer percent: {}".format(strats[-1].params.sizer_percent))
-        print("Highest VWR: {} Strategy: {},{}".format(strats[-1].analyzers.myVWR.get_analysis()['vwr'], strats[-1].params.periods[0], strats[-1].params.periods[1]))
-    
-        starting_price = strats[-1].params.starting_price
-        ending_price = strats[-1].params.ending_price
+        strats.sort(key = VWR)
+
+        print(strats[i].params.portfolio_value)
+        print("Sizer percent: {}".format(strats[i].params.sizer_percent))
+        print("Highest VWR: {} Strategy: {} {} {} {}".format(strats[i].analyzers.myVWR.get_analysis()['vwr'], strats[i].params.parameters[0], strats[i].params.parameters[1], strats[i].params.parameters[2], strats[i].params.parameters[3]))
+        print("Its sharpe ratio: {}".format(strats[i].analyzers.mysharpe.get_analysis()['sharperatio']))
+
+        starting_price = strats[i].params.starting_price
+        ending_price = strats[i].params.ending_price
         print(starting_price, " ", ending_price)
     
         buying_and_holding = (1 + ((ending_price - starting_price)/starting_price)) * cash
