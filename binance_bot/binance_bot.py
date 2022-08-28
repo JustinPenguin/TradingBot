@@ -17,7 +17,6 @@ def on_close(ws):
     print('closed connection')
 
 def on_message(ws, message):
-    print("???")
     json_message = json.loads(message)
     payload = json_message['k']
     # pprint.pprint(payload)
@@ -33,28 +32,46 @@ def on_message(ws, message):
         print(closes)
 
         closes_series = pd.Series(closes)
-        kama = ta.kama(close=closes_series,length=efficiency_ratio, fast=short_ema, slow=long_ema)
-        print(kama)
+        top, bottom = KAMA_Envelope(closes_series, efficiency_ratio, short_ema, long_ema, envelope_percent)
+        if order_active == False:
+            if close > top:
+                print("Buying")
+                buy_order(close)
+            if close < bottom:
+                print("Selling")
+                sell_order(close)
         
-            
-            
+        
 
 
-def KAMA_Envelope(ratio, short, long, percent, closes):
-    if len(closes < long):
-        print("not enough data")
-        return
+def KAMA_Envelope(data, ratio, short, long, percent):
+    kama = ta.kama(close=data,length=ratio, fast=short, slow=long)
+    print(kama)
 
+    top = kama*(1+(percent/100))
+    bottom = kama+(1-(percent/100))
+    print(top, bottom)
 
-def buy_order():
+    return (top, bottom)
+
+def buy_order(close):
+    balance= client.get_asset_balance(asset='USDT')
+    quantity = float(balance['free'])/close
+    previous_order_quantity = quantity
+    order = Client.order_market_buy(
+        symbol='ETHUSDT',
+        quantity=quantity)
+    print(order)
+    order_active = True
+    print("Buy Order succesfully placed")
+
+def sell_order(close):
     order = Client.order_market_sell(
         symbol='ETHUSDT',
-        quantity=100)
-
-def sell_order():
-    order = Client.order_market_sell(
-        symbol='ETHUSDT',
-        quantity=100)
+        quantity=previous_order_quantity)
+    print(order)
+    order_active = False
+    print("Sell Order succesfully placed")
 
 
     
@@ -67,6 +84,8 @@ efficiency_ratio = 10
 short_ema = 5
 long_ema = 28
 envelope_percent = 5.8
+order_active = False
+previous_order_quantity = 0
 
 url = 'https://api.binance.com/api/v3/klines'
 symbol = 'ETHUSDT'
@@ -86,7 +105,7 @@ with open('config.json') as json_file:
     config = json.load(json_file)
 client = Client(config["api_key"], config["secret_key"], tld='us')
 
-print("Balance: {}".format(client.get_account()))
+pprint.pprint("Balance: {}".format(client.get_account()))
 
 ws = websocket.WebSocketApp(SOCKET, on_open=on_open, on_close=on_close, on_message=on_message)
 ws.run_forever()
