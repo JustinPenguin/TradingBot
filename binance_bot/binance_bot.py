@@ -6,6 +6,9 @@ import datetime as dt
 
 from binance.client import Client
 from binance.enums import *
+from binance.exceptions import BinanceAPIException
+
+import math
 
 
 
@@ -32,66 +35,113 @@ def on_message(ws, message):
         print(closes)
 
         closes_series = pd.Series(closes)
-        top, bottom = KAMA_Envelope(closes_series, efficiency_ratio, short_ema, long_ema, envelope_percent)
+        # top, bottom = KAMA_Envelope(data=closes_series, ratio=efficiency_ratio, short=short_ema, long=long_ema, percent=envelope_percent)
+        global order_active
         if order_active == False:
-            if close > top:
-                print("Buying")
-                buy_order(close)
-            if close < bottom:
-                print("Selling")
-                sell_order(close)
+            # if close > top:
+            #     print("Buying")
+            #     buy_order(close)
+            # if close < bottom:
+            #     print("Selling")
+            #     sell_order(close)
+            print("Buying")
+            status = buy_order(close)
+            if status:
+                print("Purchase was successful")
+        else:
+            print("Selling")
+            status = sell_order(close)
+            if status:
+                print("Sale was successful")
         
         
 
 
 def KAMA_Envelope(data, ratio, short, long, percent):
     kama = ta.kama(close=data,length=ratio, fast=short, slow=long)
-    print(kama)
+    last_kama = kama[kama.size-1]
 
-    top = kama*(1+(percent/100))
-    bottom = kama+(1-(percent/100))
-    print(top, bottom)
+    top = last_kama*(1+(percent/100))
+    bottom = last_kama+(1-(percent/100))
 
     return (top, bottom)
 
 def buy_order(close):
-    balance= client.get_asset_balance(asset='USDT')
-    quantity = float(balance['free'])/close
-    previous_order_quantity = quantity
-    order = Client.order_market_buy(
-        symbol='ETHUSDT',
-        quantity=quantity)
-    print(order)
+    balance = float(client.get_asset_balance(asset='USDT')['free'])
+    print(balance)
+    print(close)
+    quantity = balance / close
+    rounded_quantity = (math.floor(quantity*100)/100) - .01
+    print(quantity)
+    print(client.get_asset_balance(asset='ETH')) 
+    print(client.get_asset_balance(asset='USDT'))
+
+    try:
+        order = client.order_market_buy(
+            symbol='ETHUSDT',
+            quantity=rounded_quantity)
+    except BinanceAPIException as e:
+        print(e)
+        return False
+
+    print("Order submitted for the purchase of {} ETH for ${}".format(rounded_quantity, rounded_quantity*close))
+    
+    print(client.get_asset_balance(asset='ETH'))
+    print(client.get_asset_balance(asset='USDT'))
+    global order_active
     order_active = True
-    print("Buy Order succesfully placed")
+    global previous_order_quantity
+    previous_order_quantity = rounded_quantity
+    return True
 
 def sell_order(close):
-    order = Client.order_market_sell(
-        symbol='ETHUSDT',
-        quantity=previous_order_quantity)
-    print(order)
+    global previous_order_quantity
+    print(client.get_asset_balance(asset='ETH'))
+    print(client.get_asset_balance(asset='USDT'))
+    try:
+        order = client.order_market_sell(
+            symbol='ETHUSDT',
+            quantity=previous_order_quantity)
+    except Exception as e:
+        print(e)
+        return False
+    print("Order submitted for the sale of {} ETH for ${}".format(previous_order_quantity, previous_order_quantity*close))
+    print(client.get_asset_balance(asset='ETH'))
+    print(client.get_asset_balance(asset='USDT'))
+    
+    global order_active
     order_active = False
-    print("Sell Order succesfully placed")
-
+    return True
 
     
+# api_key = "api_key"
+# secret_key = "secret_key"
 
+api_key = "api_test_key"
+secret_key = "secret_test_key"
 
+# SOCKET = "wss://stream.binance.com:9443/ws/ethusdt@kline_1m"
+SOCKET = "wss://testnet.binance.vision/ws/ethusdt@kline_1m"
 
-SOCKET = "wss://stream.binance.com:9443/ws/ethusdt@kline_1s"
+# url = 'https://api.binance.com/api/v3/klines'
+url = 'https://testnet.binance.vision/api/v3/klines'
+
 
 efficiency_ratio = 10
 short_ema = 5
 long_ema = 28
 envelope_percent = 5.8
+global order_active
 order_active = False
-previous_order_quantity = 0
+global previous_order_quantity
 
-url = 'https://api.binance.com/api/v3/klines'
+
+
 symbol = 'ETHUSDT'
 interval = '1d'
 start = str(int(dt.datetime(2021,9,1).timestamp()*1000))
 end = str(int(dt.datetime.today().timestamp()*1000))
+
 
 par = {'symbol': symbol, 'interval': interval, 'startTime': start, 'endTime': end}
 data = pd.DataFrame(json.loads(requests.get(url, params= par).text))
@@ -103,7 +153,7 @@ print(type(closes))
 
 with open('config.json') as json_file:
     config = json.load(json_file)
-client = Client(config["api_key"], config["secret_key"], tld='us')
+client = Client(config[api_key], config[secret_key], tld='us', testnet=True)
 
 pprint.pprint("Balance: {}".format(client.get_account()))
 
