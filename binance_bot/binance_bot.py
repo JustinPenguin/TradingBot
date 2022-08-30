@@ -32,7 +32,7 @@ def on_message(ws, message):
         closes.pop(0)
         closes.append(close)
 
-        print(closes)
+        # print(closes)
 
         closes_series = pd.Series(closes)
         top, bottom = KAMA_Envelope(data=closes_series, ratio=efficiency_ratio, short=short_ema, long=long_ema, percent=envelope_percent)
@@ -74,11 +74,13 @@ def KAMA_Envelope(data, ratio, short, long, percent):
 
 def buy_order(close):
     balance = float(client.get_asset_balance(asset='USDT')['free'])
-    quantity = balance / close
-    rounded_quantity = (math.floor(quantity*100)/100) - .01
-    print(rounded_quantity)
+    quantity = (balance / close) * .99 #adjust for commission so the order doesn't get rejected for insufficient funds
+    rounded_quantity = round((math.floor(quantity*100)/100), 2) #adjust for precision requirements
+    print("Rounded quantity: {}".format(rounded_quantity))
+
     print(client.get_asset_balance(asset='ETH')) 
     print(client.get_asset_balance(asset='USDT'))
+
     global previous_purchase_price
     previous_purchase_price = close
 
@@ -102,8 +104,12 @@ def buy_order(close):
 
 def sell_order(close):
     global previous_order_quantity
+    if previous_order_quantity == -1:
+        previous_order_quantity = round(math.floor(float(client.get_asset_balance(asset='ETH')['free'])*100)/100 , 2)
+
     print(client.get_asset_balance(asset='ETH'))
     print(client.get_asset_balance(asset='USDT'))
+
     try:
         order = client.order_market_sell(
             symbol='ETHUSDT',
@@ -112,7 +118,11 @@ def sell_order(close):
         print(e)
         return False
     global previous_purchase_price
-    print("Order submitted for the sale of {} ETH for ${} and a profit of ${}".format(previous_order_quantity, previous_order_quantity*close, previous_order_quantity*previous_purchase_price))
+    if previous_purchase_price != -1:
+        profit = (previous_order_quantity*close) - (previous_order_quantity*previous_purchase_price)
+        print("Order submitted for the sale of {} ETH for ${} and a profit of ${}".format(previous_order_quantity, previous_order_quantity*close, profit))
+    else:
+        print("Order submitted for the sale of {} ETH for ${}".format(previous_order_quantity, previous_order_quantity*close))
     print(client.get_asset_balance(asset='ETH'))
     print(client.get_asset_balance(asset='USDT'))
     
@@ -140,7 +150,9 @@ long_ema = 28
 envelope_percent = 5.8
 global ETH_owned
 global previous_order_quantity
+previous_order_quantity = -1
 global previous_purchase_price
+previous_purchase_price = -1
 
 
 
@@ -163,6 +175,8 @@ client = Client(config[api_key], config[secret_key], tld='us', testnet=False)
 
 pprint.pprint("Balance: {}".format(client.get_account()))
 ETH_owned = (float(client.get_asset_balance(asset='ETH')['free']) > .01)
+print(client.get_asset_balance(asset='ETH')) 
+print(client.get_asset_balance(asset='USDT'))
 print("ETH owned: {}".format(ETH_owned))
 
 ws = websocket.WebSocketApp(SOCKET, on_open=on_open, on_close=on_close, on_message=on_message)
