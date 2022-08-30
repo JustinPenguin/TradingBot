@@ -1,5 +1,13 @@
 {
     "api_key" : "JTk6K1RunQPVrR3TmvwOZbooes7Bij8ItsamrLmckJ3HOEAz35Qr8rLLh5iGrxqJ",
 
-    "secret_key" : "MnLdjFNWQyEEygn7eKidPCcaf2aF4p35sim5wakDQ3UOyjkz4SPa01Bg3qKTIk3K"
+    "secret_key" : "MnLdjFNWQyEEygn7eKidPCcaf2aF4p35sim5wakDQ3UOyjkz4SPa01Bg3qKTIk3K",
+
+    "api_test_key" : "8g5aYxtRvtFhIkQyEee4foGiGqxGUqPawveIJWDga305V5L7rMSbAdaeuChbkVUf",
+
+    "secret_test_key": "bZDyq4k8jI6DPXttn5uU79OkBNX4J6igCzywLnExHWLt6ya15JldrSxjz17DvT09",
+    
+    "api_test_key2" : "ZEwzNLMtstj4IjjAudMYfcvUqujtf13W8RdtJhJggilIcCV68qY8GvOaEDhOhTgX",
+
+    "secret_test_key2": "wPyehuQRynuXk8rt75ITZ2DVie0dKB17u7dc98MBuqLoQw7Oava64n7VnzTvwPvF"
 }

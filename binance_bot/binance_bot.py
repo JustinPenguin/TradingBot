@@ -158,7 +158,7 @@ print(closes)
 
 with open('config.json') as json_file:
     config = json.load(json_file)
-client = Client(config[api_key], config[secret_key], tld='us', testnet=True)
+client = Client(config[api_key], config[secret_key], tld='us', testnet=False)
 
 pprint.pprint("Balance: {}".format(client.get_account()))
 
