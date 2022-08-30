@@ -36,13 +36,15 @@ def on_message(ws, message):
 
         closes_series = pd.Series(closes)
         top, bottom = KAMA_Envelope(data=closes_series, ratio=efficiency_ratio, short=short_ema, long=long_ema, percent=envelope_percent)
-        global order_active
-        if order_active == False:
+        print("Top: {} Bottom: {} Close: {}" .format(top, bottom, close))
+        global ETH_owned
+        if ETH_owned == False:
             if close > top:
                 print("Buying")
                 status = buy_order(close)
                 if status:
                     print("Purchase was successful")
+        else:
             if close < bottom:
                 print("Selling")
                 status = sell_order(close)
@@ -92,8 +94,8 @@ def buy_order(close):
     
     print(client.get_asset_balance(asset='ETH'))
     print(client.get_asset_balance(asset='USDT'))
-    global order_active
-    order_active = True
+    global ETH_owned
+    ETH_owned = True
     global previous_order_quantity
     previous_order_quantity = rounded_quantity
     return True
@@ -114,8 +116,8 @@ def sell_order(close):
     print(client.get_asset_balance(asset='ETH'))
     print(client.get_asset_balance(asset='USDT'))
     
-    global order_active
-    order_active = False
+    global ETH_owned
+    ETH_owned = False
     return True
 
     
@@ -136,8 +138,7 @@ efficiency_ratio = 10
 short_ema = 5
 long_ema = 28
 envelope_percent = 5.8
-global order_active
-order_active = False
+global ETH_owned
 global previous_order_quantity
 global previous_purchase_price
 
@@ -161,6 +162,8 @@ with open('config.json') as json_file:
 client = Client(config[api_key], config[secret_key], tld='us', testnet=False)
 
 pprint.pprint("Balance: {}".format(client.get_account()))
+ETH_owned = (float(client.get_asset_balance(asset='ETH')['free']) > .01)
+print("ETH owned: {}".format(ETH_owned))
 
 ws = websocket.WebSocketApp(SOCKET, on_open=on_open, on_close=on_close, on_message=on_message)
 ws.run_forever()
