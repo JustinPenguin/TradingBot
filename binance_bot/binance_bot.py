@@ -22,17 +22,15 @@ def on_close(ws):
 def on_message(ws, message):
     json_message = json.loads(message)
     payload = json_message['k']
-    # pprint.pprint(payload)
 
     if payload['x'] == True:
+        f = open("output.txt", "a")
         close = float(payload['c'])
 
         print(close)
         
         closes.pop(0)
         closes.append(close)
-
-        # print(closes)
 
         closes_series = pd.Series(closes)
         top, bottom = KAMA_Envelope(data=closes_series, ratio=efficiency_ratio, short=short_ema, long=long_ema, percent=envelope_percent)
@@ -43,22 +41,17 @@ def on_message(ws, message):
                 print("Buying")
                 status = buy_order(close)
                 if status:
+                    f.write("Purchase was succesful\n")
                     print("Purchase was successful")
         else:
             if close < bottom:
                 print("Selling")
                 status = sell_order(close)
                 if status:
+                    f.write("Sale was successful\n")
                     print("Sale was successful")
-        #     print("Buying")
-        #     status = buy_order(close)
-        #     if status:
-        #         print("Purchase was successful")
-        # else:
-        #     print("Selling")
-        #     status = sell_order(close)
-        #     if status:
-        #         print("Sale was successful")
+
+        f.close()
         
         
 
@@ -73,6 +66,8 @@ def KAMA_Envelope(data, ratio, short, long, percent):
     return (top, bottom)
 
 def buy_order(close):
+    f = open("output.txt", "a")
+
     balance = float(client.get_asset_balance(asset='USD')['free'])
     quantity = (balance / close) * .99 #adjust for commission so the order doesn't get rejected for insufficient funds
     rounded_quantity = round((math.floor(quantity*100)/100), 2) #adjust for precision requirements
@@ -90,9 +85,11 @@ def buy_order(close):
             quantity=rounded_quantity)
     except BinanceAPIException as e:
         print(e)
+        f.close()
         return False
 
     print("Order submitted for the purchase of {} ETH for ${}".format(rounded_quantity, rounded_quantity*close))
+    f.write("Order submitted for the purchase of {} ETH for ${}\n".format(rounded_quantity, rounded_quantity*close))
     
     print(client.get_asset_balance(asset='ETH'))
     print(client.get_asset_balance(asset='USD'))
@@ -100,9 +97,12 @@ def buy_order(close):
     ETH_owned = True
     global previous_order_quantity
     previous_order_quantity = rounded_quantity
+    f.close()
     return True
 
 def sell_order(close):
+    f = open("output.txt", "a")
+
     global previous_order_quantity
     if previous_order_quantity == -1:
         previous_order_quantity = round(math.floor(float(client.get_asset_balance(asset='ETH')['free'])*100)/100 , 2)
@@ -116,32 +116,31 @@ def sell_order(close):
             quantity=previous_order_quantity)
     except Exception as e:
         print(e)
+        f.close()
         return False
     global previous_purchase_price
     if previous_purchase_price != -1:
         profit = (previous_order_quantity*close) - (previous_order_quantity*previous_purchase_price)
         print("Order submitted for the sale of {} ETH for ${} and a profit of ${}".format(previous_order_quantity, previous_order_quantity*close, profit))
+        f.write("Order submitted for the sale of {} ETH for ${} and a profit of ${}\n".format(previous_order_quantity, previous_order_quantity*close, profit))
     else:
         print("Order submitted for the sale of {} ETH for ${}".format(previous_order_quantity, previous_order_quantity*close))
+        f.write("Order submitted for the sale of {} ETH for ${}\n".format(previous_order_quantity, previous_order_quantity*close))
     print(client.get_asset_balance(asset='ETH'))
     print(client.get_asset_balance(asset='USD'))
     
     global ETH_owned
     ETH_owned = False
+    f.close()
     return True
 
     
 api_key = "api_key"
 secret_key = "secret_key"
 
-# api_key = "api_test_key"
-# secret_key = "secret_test_key"
-
 SOCKET = "wss://stream.binance.com:9443/ws/ethusdt@kline_1d"
-# SOCKET = "wss://testnet.binance.vision/ws/ethusdt@kline_1m"
 
 url = 'https://api.binance.com/api/v3/klines'
-# url = 'https://testnet.binance.vision/api/v3/klines'
 
 
 efficiency_ratio = 10
