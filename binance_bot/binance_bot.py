@@ -35,24 +35,28 @@ def on_message(ws, message):
         print(closes)
 
         closes_series = pd.Series(closes)
-        # top, bottom = KAMA_Envelope(data=closes_series, ratio=efficiency_ratio, short=short_ema, long=long_ema, percent=envelope_percent)
+        top, bottom = KAMA_Envelope(data=closes_series, ratio=efficiency_ratio, short=short_ema, long=long_ema, percent=envelope_percent)
         global order_active
         if order_active == False:
-            # if close > top:
-            #     print("Buying")
-            #     buy_order(close)
-            # if close < bottom:
-            #     print("Selling")
-            #     sell_order(close)
-            print("Buying")
-            status = buy_order(close)
-            if status:
-                print("Purchase was successful")
-        else:
-            print("Selling")
-            status = sell_order(close)
-            if status:
-                print("Sale was successful")
+            if close > top:
+                print("Buying")
+                status = buy_order(close)
+                if status:
+                    print("Purchase was successful")
+            if close < bottom:
+                print("Selling")
+                status = sell_order(close)
+                if status:
+                    print("Sale was successful")
+        #     print("Buying")
+        #     status = buy_order(close)
+        #     if status:
+        #         print("Purchase was successful")
+        # else:
+        #     print("Selling")
+        #     status = sell_order(close)
+        #     if status:
+        #         print("Sale was successful")
         
         
 
@@ -68,13 +72,13 @@ def KAMA_Envelope(data, ratio, short, long, percent):
 
 def buy_order(close):
     balance = float(client.get_asset_balance(asset='USDT')['free'])
-    print(balance)
-    print(close)
     quantity = balance / close
     rounded_quantity = (math.floor(quantity*100)/100) - .01
-    print(quantity)
+    print(rounded_quantity)
     print(client.get_asset_balance(asset='ETH')) 
     print(client.get_asset_balance(asset='USDT'))
+    global previous_purchase_price
+    previous_purchase_price = close
 
     try:
         order = client.order_market_buy(
@@ -105,7 +109,8 @@ def sell_order(close):
     except Exception as e:
         print(e)
         return False
-    print("Order submitted for the sale of {} ETH for ${}".format(previous_order_quantity, previous_order_quantity*close))
+    global previous_purchase_price
+    print("Order submitted for the sale of {} ETH for ${} and a profit of ${}".format(previous_order_quantity, previous_order_quantity*close, previous_order_quantity*previous_purchase_price))
     print(client.get_asset_balance(asset='ETH'))
     print(client.get_asset_balance(asset='USDT'))
     
@@ -114,17 +119,17 @@ def sell_order(close):
     return True
 
     
-# api_key = "api_key"
-# secret_key = "secret_key"
+api_key = "api_key"
+secret_key = "secret_key"
 
-api_key = "api_test_key"
-secret_key = "secret_test_key"
+# api_key = "api_test_key"
+# secret_key = "secret_test_key"
 
-# SOCKET = "wss://stream.binance.com:9443/ws/ethusdt@kline_1m"
-SOCKET = "wss://testnet.binance.vision/ws/ethusdt@kline_1m"
+SOCKET = "wss://stream.binance.com:9443/ws/ethusdt@kline_1d"
+# SOCKET = "wss://testnet.binance.vision/ws/ethusdt@kline_1m"
 
-# url = 'https://api.binance.com/api/v3/klines'
-url = 'https://testnet.binance.vision/api/v3/klines'
+url = 'https://api.binance.com/api/v3/klines'
+# url = 'https://testnet.binance.vision/api/v3/klines'
 
 
 efficiency_ratio = 10
@@ -134,6 +139,7 @@ envelope_percent = 5.8
 global order_active
 order_active = False
 global previous_order_quantity
+global previous_purchase_price
 
 
 
@@ -148,7 +154,6 @@ data = pd.DataFrame(json.loads(requests.get(url, params= par).text))
 
 closes = data[4].astype(dtype='float64').tolist()
 print(closes)
-print(type(closes))
 
 
 with open('config.json') as json_file:
