@@ -22,6 +22,7 @@ def on_close(ws):
 def on_message(ws, message):
     json_message = json.loads(message)
     payload = json_message['k']
+    # pprint.pprint(payload)
 
     if payload['x'] == True:
         f = open("output.txt", "a")
@@ -32,58 +33,41 @@ def on_message(ws, message):
         global closes
         closes.pop(0)
         closes.append(close)
-        
-        print(len(closes))
+
+        print(closes)
+
         f.write(str(len(closes)) + '\n')
         for i in range(5):
             print(closes[i])
             f.write(str(closes[i]) + '\n')
 
-
         closes_series = pd.Series(closes)
-        top, bottom = KAMA_Envelope(data=closes_series, ratio=efficiency_ratio, short=short_ema, long=long_ema, percent=envelope_percent)
-        print("Top: {} Bottom: {} Close: {}" .format(top, bottom, close))
-        f.write("Top: {} Bottom: {} Close: {}" .format(top, bottom, close))
         global ETH_owned
         if ETH_owned == False:
-            if close > top:
-                print("Buying")
-                status = buy_order(close)
-                if status:
-                    f.write("Purchase was succesful\n")
-                    print("Purchase was successful")
+            print("Buying")
+            status = buy_order(close)
+            if status:
+                f.write("Purchase was successful\n")
+                print("Purchase was successful")
         else:
-            if close < bottom:
-                print("Selling")
-                status = sell_order(close)
-                if status:
-                    f.write("Sale was successful\n")
-                    print("Sale was successful")
-
+            print("Selling")
+            status = sell_order(close)
+            if status:
+                f.write("Sale was successful\n")
+                print("Sale was successful")
+        
         f.close()
-        
-        
-
-
-def KAMA_Envelope(data, ratio, short, long, percent):
-    kama = ta.kama(close=data,length=ratio, fast=short, slow=long)
-    last_kama = kama[kama.size-1]
-
-    top = last_kama*(1+(percent/100))
-    bottom = last_kama+(1-(percent/100))
-
-    return (top, bottom)
 
 def buy_order(close):
     f = open("output.txt", "a")
 
-    balance = float(client.get_asset_balance(asset='USD')['free'])
+    balance = float(client.get_asset_balance(asset='USDT')['free'])
     quantity = (balance / close) * .99 #adjust for commission so the order doesn't get rejected for insufficient funds
     rounded_quantity = round((math.floor(quantity*100)/100), 2) #adjust for precision requirements
     print("Rounded quantity: {}".format(rounded_quantity))
 
     print(client.get_asset_balance(asset='ETH')) 
-    print(client.get_asset_balance(asset='USD'))
+    print(client.get_asset_balance(asset='USDT'))
 
     global previous_purchase_price
     previous_purchase_price = close
@@ -101,7 +85,7 @@ def buy_order(close):
     f.write("Order submitted for the purchase of {} ETH for ${}\n".format(rounded_quantity, rounded_quantity*close))
     
     print(client.get_asset_balance(asset='ETH'))
-    print(client.get_asset_balance(asset='USD'))
+    print(client.get_asset_balance(asset='USDT'))
     global ETH_owned
     ETH_owned = True
     global previous_order_quantity
@@ -117,7 +101,7 @@ def sell_order(close):
         previous_order_quantity = round(math.floor(float(client.get_asset_balance(asset='ETH')['free'])*100)/100 , 2)
 
     print(client.get_asset_balance(asset='ETH'))
-    print(client.get_asset_balance(asset='USD'))
+    print(client.get_asset_balance(asset='USDT'))
 
     try:
         order = client.order_market_sell(
@@ -136,7 +120,7 @@ def sell_order(close):
         print("Order submitted for the sale of {} ETH for ${}".format(previous_order_quantity, previous_order_quantity*close))
         f.write("Order submitted for the sale of {} ETH for ${}\n".format(previous_order_quantity, previous_order_quantity*close))
     print(client.get_asset_balance(asset='ETH'))
-    print(client.get_asset_balance(asset='USD'))
+    print(client.get_asset_balance(asset='USDT'))
     
     global ETH_owned
     ETH_owned = False
@@ -144,12 +128,17 @@ def sell_order(close):
     return True
 
     
-api_key = "api_key"
-secret_key = "secret_key"
+# api_key = "api_key"
+# secret_key = "secret_key"
 
-SOCKET = "wss://stream.binance.com:9443/ws/ethusdt@kline_1d"
+api_key = "api_test_key"
+secret_key = "secret_test_key"
 
-url = 'https://api.binance.com/api/v3/klines'
+# SOCKET = "wss://stream.binance.com:9443/ws/ethusdt@kline_1d"
+SOCKET = "wss://testnet.binance.vision/ws/ethusdt@kline_1s"
+
+# url = 'https://api.binance.com/api/v3/klines'
+url = 'https://testnet.binance.vision/api/v3/klines'
 
 
 efficiency_ratio = 10
@@ -165,8 +154,8 @@ previous_purchase_price = -1
 
 
 symbol = 'ETHUSDT'
-interval = '1d'
-start = str(int(dt.datetime(2021,9,1).timestamp()*1000))
+interval = '1h'
+start = str(int(dt.datetime(2022,6,1).timestamp()*1000))
 end = str(int(dt.datetime.today().timestamp()*1000))
 
 
@@ -180,12 +169,12 @@ print(closes)
 
 with open('config.json') as json_file:
     config = json.load(json_file)
-client = Client(config[api_key], config[secret_key], tld='us', testnet=False)
+client = Client(config[api_key], config[secret_key], tld='us', testnet=True)
 
 pprint.pprint("Balance: {}".format(client.get_account()))
 ETH_owned = (float(client.get_asset_balance(asset='ETH')['free']) > .01)
 print(client.get_asset_balance(asset='ETH')) 
-print(client.get_asset_balance(asset='USD'))
+print(client.get_asset_balance(asset='USDT'))
 print("ETH owned: {}".format(ETH_owned))
 
 ws = websocket.WebSocketApp(SOCKET, on_open=on_open, on_close=on_close, on_message=on_message)
