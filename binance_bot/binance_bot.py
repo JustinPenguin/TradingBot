@@ -47,6 +47,7 @@ def on_message(ws, message):
         data.to_csv("live_data.csv", index = False)
 
         c = float(c)
+        print(c)
         
 
 
