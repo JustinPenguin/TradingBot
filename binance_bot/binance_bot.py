@@ -4,14 +4,21 @@ import pandas_ta as ta
 import requests
 import datetime as dt
 
+
+import numpy as np
+
 from binance.client import Client
 from binance.enums import *
 from binance.exceptions import BinanceAPIException
 
 import math
+from subprocess import run
 
+import datetime
+import csv
 
-
+1662782400
+1662800400
 
 def on_open(ws):
     print('opened connection')
@@ -22,57 +29,55 @@ def on_close(ws):
 def on_message(ws, message):
     json_message = json.loads(message)
     payload = json_message['k']
+    print(payload)
 
     global one_time_buy
     if payload['x'] == True or one_time_buy == True:
         f = open("output.txt", "a")
-        close = float(payload['c'])
 
-        print(close)
+        t = payload['t']
+        o = payload['o']
+        h = payload['h']
+        l = payload['l']
+        c = payload['c']
+
+        t = datetime.datetime.fromtimestamp((t / 1e3) + 25200)
+        data.loc[len(data.index)] = [t, o, h, l, c] 
+
+        data.to_csv("live_data.csv", index = False)
+
+        c = float(c)
         
-        global closes
-        closes.append(close)
-        
-        print(len(closes))
-        f.write(str(len(closes)) + '\n')
-        for i in range(5):
-            print(closes[i])
-            f.write(str(closes[i]) + '\n')
 
 
-        closes_series = pd.Series(closes)
-        top, bottom = KAMA_Envelope(data=closes_series, ratio=efficiency_ratio, short=short_ema, long=long_ema, percent=envelope_percent)
-        print("Top: {} Bottom: {} Close: {}" .format(top, bottom, close))
-        f.write("Top: {} Bottom: {} Close: {}" .format(top, bottom, close))
+        top, bottom = KAMA_Envelope()
+        print("Top: {} Bottom: {} Close: {}" .format(top, bottom, c))
+        f.write("Top: {} Bottom: {} Close: {}" .format(top, bottom, c))
         global ETH_owned
         if ETH_owned == False:
-            if close > top:
+            if c > top:
                 print("Buying")
-                status = buy_order(close)
+                status = buy_order(c)
                 if status:
                     f.write("Purchase was succesful\n")
                     print("Purchase was successful")
         else:
-            if close < bottom:
+            if c < bottom:
                 print("Selling")
-                status = sell_order(close)
+                status = sell_order(c)
                 if status:
                     f.write("Sale was successful\n")
                     print("Sale was successful")
 
         f.close()
-        
-        
 
 
-def KAMA_Envelope(data, ratio, short, long, percent):
-    kama = ta.kama(close=data,length=ratio, fast=short, slow=long)
-    last_kama = kama[kama.size-1]
-
-    top = last_kama*(1+(percent/100))
-    bottom = last_kama+(1-(percent/100))
-
-    return (top, bottom)
+def KAMA_Envelope():
+    output = run(["python3", "KAMA_calculator.py"])
+    top = output[0]
+    bot = output[1]
+ 
+    return (top, bot)
 
 def buy_order(close):
     f = open("output.txt", "a")
@@ -143,6 +148,12 @@ def sell_order(close):
     f.close()
     return True
 
+
+# pd.set_option('display.max_rows', None)
+# pd.set_option('display.max_columns', None)
+# pd.set_option('display.width', 1000)
+# pd.set_option('display.colheader_justify', 'center')
+# pd.set_option('display.precision', 2)
     
 api_key = "api_key"
 secret_key = "secret_key"
@@ -152,9 +163,9 @@ SOCKET = "wss://stream.binance.com:9443/ws/ethusdt@kline_1d"
 url = 'https://api.binance.com/api/v3/klines'
 
 
-efficiency_ratio = 10
-short_ema = 5
-long_ema = 28
+length = 10
+fast_ema = 5
+slow_ema = 28
 envelope_percent = 5.8
 global ETH_owned
 global previous_order_quantity
@@ -169,16 +180,20 @@ one_time_buy = True
 
 symbol = 'ETHUSDT'
 interval = '1d'
-start = str(int(dt.datetime(2020,9,1).timestamp()*1000))
+start = str(int(dt.datetime(2021,8,1).timestamp()*1000))
 end = str(int(dt.datetime.today().timestamp()*1000))
 
-
+global data
 par = {'symbol': symbol, 'interval': interval, 'startTime': start, 'endTime': end}
 data = pd.DataFrame(json.loads(requests.get(url, params= par).text))
+data = data.iloc[:, :5]
+print(data)
 
-global closes
-closes = data[4].astype(dtype='float64').tolist()
-print(closes)
+
+transformed_data = data
+transformed_data[0] = pd.to_datetime(data[0], unit='ms')
+transformed_data.to_csv("live_data.csv", index = False)
+print(transformed_data)
 
 
 with open('config.json') as json_file:
