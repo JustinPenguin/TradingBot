@@ -29,10 +29,10 @@ def on_close(ws):
 def on_message(ws, message):
     json_message = json.loads(message)
     payload = json_message['k']
-    print(payload)
 
     global one_time_buy
     if payload['x'] == True or one_time_buy == True:
+        one_time_buy = False
         f = open("output.txt", "a")
 
         t = payload['t']
@@ -47,7 +47,6 @@ def on_message(ws, message):
         data.to_csv("live_data.csv", index = False)
 
         c = float(c)
-        print(c)
         
 
 
@@ -177,7 +176,7 @@ global previous_purchase_price
 previous_purchase_price = -1
 
 global one_time_buy
-one_time_buy = True
+one_time_buy = False
 
 
 
@@ -190,13 +189,11 @@ global data
 par = {'symbol': symbol, 'interval': interval, 'startTime': start, 'endTime': end}
 data = pd.DataFrame(json.loads(requests.get(url, params= par).text))
 data = data.iloc[:, :5]
-print(data)
 
 
 transformed_data = data
 transformed_data[0] = pd.to_datetime(data[0], unit='ms')
 transformed_data.to_csv("live_data.csv", index = False)
-print(transformed_data)
 
 
 with open('config.json') as json_file:
