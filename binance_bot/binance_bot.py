@@ -23,7 +23,8 @@ def on_message(ws, message):
     json_message = json.loads(message)
     payload = json_message['k']
 
-    if payload['x'] == True:
+    global one_time_buy
+    if payload['x'] == True or one_time_buy == True:
         f = open("output.txt", "a")
         close = float(payload['c'])
 
@@ -161,6 +162,9 @@ global previous_order_quantity
 previous_order_quantity = -1
 global previous_purchase_price
 previous_purchase_price = -1
+
+global one_time_buy
+one_time_buy = True
 
 
 
