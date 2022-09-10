@@ -41,7 +41,7 @@ def on_message(ws, message):
         l = payload['l']
         c = payload['c']
 
-        t = datetime.datetime.fromtimestamp((t / 1e3) + 25200)
+        t = datetime.utcfromtimestamp((t / 1e3)).strftime('%Y-%m-%d')
         data.loc[len(data.index)] = [t, o, h, l, c] 
 
         data.to_csv("live_data.csv", index = False)
