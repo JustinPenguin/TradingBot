@@ -31,7 +31,6 @@ def on_message(ws, message):
         print(close)
         
         global closes
-        closes.pop(0)
         closes.append(close)
         
         print(len(closes))
@@ -170,7 +169,7 @@ one_time_buy = True
 
 symbol = 'ETHUSDT'
 interval = '1d'
-start = str(int(dt.datetime(2021,9,1).timestamp()*1000))
+start = str(int(dt.datetime(2020,9,1).timestamp()*1000))
 end = str(int(dt.datetime.today().timestamp()*1000))
 
 
