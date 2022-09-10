@@ -75,8 +75,8 @@ def on_message(ws, message):
 
 def KAMA_Envelope():
     output = run(["python3", "KAMA_calculator.py"])
-    top = output[0]
-    bot = output[1]
+    top = float(output[0])
+    bot = float(output[1])
  
     return (top, bot)
 
