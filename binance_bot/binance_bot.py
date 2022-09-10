@@ -75,9 +75,11 @@ def on_message(ws, message):
 
 def KAMA_Envelope():
     output = run(["python3", "KAMA_calculator.py"])
-    top = float(output[0])
-    bot = float(output[1])
- 
+    f = open("kama.txt", "r")
+    top = float(f.readline())
+    bot = float(f.readline())
+    f.close()
+    
     return (top, bot)
 
 def buy_order(close):
