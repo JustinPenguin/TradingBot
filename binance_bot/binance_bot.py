@@ -86,7 +86,7 @@ def buy_order(close):
     f = open("output.txt", "a")
 
     balance = float(client.get_asset_balance(asset='USD')['free'])
-    quantity = (balance / close) * .985 #adjust for commission so the order doesn't get rejected for insufficient funds
+    quantity = (balance / close) * .98 #adjust for commission so the order doesn't get rejected for insufficient funds
     rounded_quantity = round((math.floor(quantity*100)/100), 2) #adjust for precision requirements
     print("Rounded quantity: {}".format(rounded_quantity))
 
