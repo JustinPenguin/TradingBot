@@ -34,9 +34,9 @@ class TestStrategy(bt.Strategy):
 
     def stop(self):
         f = open("kama.txt", "w")
-        f.write(self.kama.top[0])
+        f.write(str(self.kama.top[0]))
         f.write('\n')
-        f.write(self.kama.bot[0])
+        f.write(str(self.kama.bot[0]))
         f.close()
 
         print(self.kama.top[0])
