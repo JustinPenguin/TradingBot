@@ -84,20 +84,20 @@ def KAMA_Envelope():
 def buy_order(close):
     f = open("output.txt", "a")
 
-    balance = float(client.get_asset_balance(asset='USDT')['free'])
+    balance = float(client.get_asset_balance(asset='USD')['free'])
     quantity = (balance / close) * .98 #adjust for commission so the order doesn't get rejected for insufficient funds
     rounded_quantity = round((math.floor(quantity*100)/100), 2) #adjust for precision requirements
     print("Rounded quantity: {}".format(rounded_quantity))
 
     print(client.get_asset_balance(asset='ETH')) 
-    print(client.get_asset_balance(asset='USDT'))
+    print(client.get_asset_balance(asset='USD'))
 
     global previous_purchase_price
     previous_purchase_price = close
 
     try:
         order = client.order_market_buy(
-            symbol='ETHUSDT',
+            symbol='ETHUSD',
             quantity=rounded_quantity)
     except BinanceAPIException as e:
         print(e)
@@ -108,7 +108,7 @@ def buy_order(close):
     f.write("Order submitted for the purchase of {} ETH for ${}\n".format(rounded_quantity, rounded_quantity*close))
     
     print(client.get_asset_balance(asset='ETH'))
-    print(client.get_asset_balance(asset='USDT'))
+    print(client.get_asset_balance(asset='USD'))
     global ETH_owned
     ETH_owned = True
     global previous_order_quantity
@@ -124,11 +124,11 @@ def sell_order(close):
         previous_order_quantity = round(math.floor(float(client.get_asset_balance(asset='ETH')['free'])*100)/100 , 2)
 
     print(client.get_asset_balance(asset='ETH'))
-    print(client.get_asset_balance(asset='USDT'))
+    print(client.get_asset_balance(asset='USD'))
 
     try:
         order = client.order_market_sell(
-            symbol='ETHUSDT',
+            symbol='ETHUSD',
             quantity=previous_order_quantity)
     except Exception as e:
         print(e)
@@ -143,7 +143,7 @@ def sell_order(close):
         print("Order submitted for the sale of {} ETH for ${}".format(previous_order_quantity, previous_order_quantity*close))
         f.write("Order submitted for the sale of {} ETH for ${}\n".format(previous_order_quantity, previous_order_quantity*close))
     print(client.get_asset_balance(asset='ETH'))
-    print(client.get_asset_balance(asset='USDT'))
+    print(client.get_asset_balance(asset='USD'))
     
     global ETH_owned
     ETH_owned = False
@@ -176,7 +176,7 @@ global previous_purchase_price
 previous_purchase_price = -1
 
 global one_time_buy
-one_time_buy = False
+one_time_buy = True
 
 
 
@@ -203,7 +203,7 @@ client = Client(config[api_key], config[secret_key], tld='us', testnet=False)
 pprint.pprint("Balance: {}".format(client.get_account()))
 ETH_owned = (float(client.get_asset_balance(asset='ETH')['free']) > .01)
 print(client.get_asset_balance(asset='ETH')) 
-print(client.get_asset_balance(asset='USDT'))
+print(client.get_asset_balance(asset='USD'))
 print("ETH owned: {}".format(ETH_owned))
 
 ws = websocket.WebSocketApp(SOCKET, on_open=on_open, on_close=on_close, on_message=on_message)
