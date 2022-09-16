@@ -149,7 +149,7 @@ class TestStrategy(bt.Strategy):
 
 if __name__ == '__main__':
     # Create a cerebro entity
-    cerebro = bt.Cerebro(stdstats = False, exactbars=False)
+    cerebro = bt.Cerebro(stdstats = False, exactbars=True, runonce = False)
 
     # Add a strategy
     period1 = range(5*24,20*24)
