@@ -7,16 +7,17 @@ I decided to trade on Ethereum because of its volatility, its 24 hour trading, a
 There are two main components involved in this build: The backtesting, and the live trading.
 
 
-The first thing I worked on was the backtesting functionality. By leveraging the library Backtrader, I was able to formulate and backtest strategies against historical data.
+The first thing I worked on was the backtesting functionality. By leveraging the library Backtrader and Python, I was able to locally formulate and backtest strategies against historical Ethereum data using machine learning techniques.
 I created a system that allows me to manually download/import historical market data or pull it from yahoo finance.
-Through research, testing, and analyzing results, I decided to go with KAMA. Next, I would use machine learning-like methods
-in order to find the best parameters for the strategy. After running tens of thousands of iterations, I landed on my parameters and using daily tick data.
+Through research, testing, and analyzing results, I decided to go with KAMA while optimizing the parameters. The struggle of not wanting to overfit my data led me to the use of sampling and breaking up my data into test and validation datasets. After running tens of thousands of iterations, I landed on my parameters and using daily tick data over hourly and other granularities.
 
 And now, with the parameters and strategy in place, it was time to work on live trading. While I initially intended for this system to use IBKR because of
 Backtrader's integration with it, it didn't end up working because of unforeseen bugs and maintenance issues. Because of that, I pivoted to using Binance.
-I was able to create a system that connects to the binance API, uses historical and live data in order to make trading decisions, and execute them.
+By connecting to the Binance API, I could use the strategy previously formulated during backtesting (KAMA) to execute trades on live data.
+
 
 Lastly, I created an AWS EC2 instance and uploaded this repo (plus some hidden directories) so that I can run this strategy continuously on the cloud. 
+
 
 Note, I am aware of the amateurishness of this strategy, but the point of this project was just to get a sense of what its like to formulate, test, and execute a trading strategy from scratch.
 
