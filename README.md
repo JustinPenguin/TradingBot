@@ -21,4 +21,5 @@ Lastly, I created an AWS EC2 instance and uploaded this repo (plus some hidden d
 
 Note, I am aware of the amateurishness of this strategy, but the point of this project was just to get a sense of what its like to formulate, test, and execute a trading strategy from scratch.
 
-PS. There are earlier commits that include a config.json file that included my api key and secret key. I have since changed them and made this repo publically available.
+PS. There are earlier commits that include a config.json file that included my api key and secret key. I have since changed them and made this repo publically available. 
+PS. The main code for backtesting is found in backtesting.py and backtesting2.py. The main code for binance_bot is binance_bot.py.
